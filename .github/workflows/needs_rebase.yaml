@@ -1,20 +1,15 @@
-name: Needs Rebase Check
-
-on:
-  pull_request:
-    types:
-      - synchronize
-  push:
-    branches:
-      - '*.0.x'
-      - 'main'
 jobs:
   triage:
     permissions:
       pull-requests: write
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
-      - uses: eps1lon/actions-label-merge-conflict@releases/2.x
-        with:
-          dirtyLabel: "Needs Rebase"
-          repoToken: "${{ secrets.GITHUB_TOKEN }}"
+    - continue-on-error: true
+      uses: eps1lon/actions-label-merge-conflict@releases/2.x
+      with:
+        dirtyLabel: Needs Rebase
+        repoToken: ${{ secrets.GITHUB_TOKEN }}
+name: Needs Rebase Check
+on:
+  repository_dispatch:
+    types: trigger-ga___needs_rebase.yaml

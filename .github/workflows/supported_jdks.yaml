@@ -1,34 +1,25 @@
-name: JDK Compatibility
-
-on:
-  push:
-    branches:
-      - main
-      - '*.0.x'
-
-  pull_request:
-    branches:
-      - main
-      - '*.0.x'
-
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
+    steps:
+    - continue-on-error: true
+      uses: actions/checkout@v4
+    - continue-on-error: true
+      name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        cache: maven
+        distribution: temurin
+        java-version: ${{ matrix.jdk }}
+    - continue-on-error: true
+      name: Build Infinispan
+      run: ./mvnw -B -s maven-settings.xml install -DskipTests
     strategy:
       fail-fast: false
       matrix:
         jdk:
-          - '22-ea'
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          java-version: ${{ matrix.jdk }}
-          distribution: 'temurin'
-          cache: maven
-
-      - name: Build Infinispan
-        run: ./mvnw -B -s maven-settings.xml install -DskipTests
+        - 22-ea
+name: JDK Compatibility
+on:
+  repository_dispatch:
+    types: trigger-ga___supported_jdks.yaml

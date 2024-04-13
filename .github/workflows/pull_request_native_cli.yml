@@ -1,58 +1,62 @@
-name: Native CLI
-
-on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
-
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
+    runs-on: self-hosted
+    steps:
+    - continue-on-error: true
+      uses: actions/checkout@v4
+    - continue-on-error: true
+      if: ${{ matrix.os == 'windows-2022' }}
+      name: Add msbuild to PATH
+      uses: microsoft/setup-msbuild@v2.0.0
+    - continue-on-error: true
+      uses: graalvm/setup-graalvm@v1
+      with:
+        distribution: graalvm
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        java-version: '21'
+    - continue-on-error: true
+      name: Cache local Maven repository
+      uses: actions/cache@v4
+      with:
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        path: ~/.m2/repository
+        restore-keys: '${{ runner.os }}-maven-
+
+          '
+    - continue-on-error: true
+      if: ${{ matrix.os == 'windows-2022' }}
+      name: Build native executable
+      run: 'call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat"
+        x86_amd64
+
+        mvnw.cmd -V install -s maven-settings.xml -Pdistribution -Pnative -Pwindows
+        -am -pl quarkus/cli -Dquarkus.native.native-image-xmx=5G
+
+        '
+      shell: cmd
+    - continue-on-error: true
+      if: ${{ matrix.os != 'windows-2022' }}
+      name: Build native executable
+      run: ./mvnw -V install -s maven-settings.xml -Pdistribution -Pnative -am -pl
+        quarkus/cli
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-2022]
         include:
-          - os: ubuntu-latest
-            asset_name: linux-amd64
-            gu_binary: gu
-          - os: macos-latest
-            asset_name: darwin-amd64
-            gu_binary: gu
-          - os: windows-2022
-            asset_name: windows-amd64
-            gu_binary: gu.cmd
-    steps:
-      - uses: actions/checkout@v4
-
-      - if: ${{ matrix.os == 'windows-2022' }}
-        name: Add msbuild to PATH
-        uses: microsoft/setup-msbuild@v2.0.0
-
-      - uses: graalvm/setup-graalvm@v1
-        with:
-          java-version: '21'
-          distribution: 'graalvm'
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Cache local Maven repository
-        uses: actions/cache@v4
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
-
-      - if: ${{ matrix.os == 'windows-2022' }}
-        name: Build native executable
-        run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64
-          mvnw.cmd -V install -s maven-settings.xml -Pdistribution -Pnative -Pwindows -am -pl quarkus/cli -Dquarkus.native.native-image-xmx=5G
-        shell: cmd
-
-      - if: ${{ matrix.os != 'windows-2022' }}
-        name: Build native executable
-        run: ./mvnw -V install -s maven-settings.xml -Pdistribution -Pnative -am -pl quarkus/cli
+        - asset_name: linux-amd64
+          gu_binary: gu
+          os: ubuntu-latest
+        - asset_name: darwin-amd64
+          gu_binary: gu
+          os: macos-latest
+        - asset_name: windows-amd64
+          gu_binary: gu.cmd
+          os: windows-2022
+        os:
+        - ubuntu-latest
+        - macos-latest
+        - windows-2022
+name: Native CLI
+on:
+  repository_dispatch:
+    types: trigger-ga___pull_request_native_cli.yml

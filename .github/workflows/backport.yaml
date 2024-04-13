@@ -1,31 +1,27 @@
-name: Automated Backporting
-
-on:
-  pull_request_target:
-    types:
-      - closed
-    branches:
-      - main
-
 jobs:
   create_backport:
     if: github.event.pull_request.merged == true
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
-      - if: contains(github.event.pull_request.labels.*.name, '13.0.x')
-        name: 13.0.x Backport
-        uses: kiegroup/git-backporting@v4.7.1
-        with:
-          target-branch: 13.0.x
-          pull-request: ${{ github.event.pull_request.url }}
-          auth: ${{ secrets.GITHUB_TOKEN }}
-          no-squash: true
-
-      - if: contains(github.event.pull_request.labels.*.name, '14.0.x')
-        name: 14.0.x Backport
-        uses: kiegroup/git-backporting@v4.7.1
-        with:
-          target-branch: 14.0.x
-          pull-request: ${{ github.event.pull_request.url }}
-          auth: ${{ secrets.GITHUB_TOKEN }}
-          no-squash: true
+    - continue-on-error: true
+      if: contains(github.event.pull_request.labels.*.name, '13.0.x')
+      name: 13.0.x Backport
+      uses: kiegroup/git-backporting@v4.7.1
+      with:
+        auth: ${{ secrets.GITHUB_TOKEN }}
+        no-squash: true
+        pull-request: ${{ github.event.pull_request.url }}
+        target-branch: 13.0.x
+    - continue-on-error: true
+      if: contains(github.event.pull_request.labels.*.name, '14.0.x')
+      name: 14.0.x Backport
+      uses: kiegroup/git-backporting@v4.7.1
+      with:
+        auth: ${{ secrets.GITHUB_TOKEN }}
+        no-squash: true
+        pull-request: ${{ github.event.pull_request.url }}
+        target-branch: 14.0.x
+name: Automated Backporting
+on:
+  repository_dispatch:
+    types: trigger-ga___backport.yaml
